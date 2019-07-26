@@ -70,9 +70,9 @@ use std::net::TcpStream;
 use std::net::ToSocketAddrs;
 use std::time::Duration;
 
-use Request;
-use Response;
-use ResponseBody;
+use crate::Request;
+use crate::Response;
+use crate::ResponseBody;
 
 /// Error that can happen when dispatching the request to another server.
 #[derive(Debug)]
@@ -108,7 +108,7 @@ impl error::Error for ProxyError {
     }
 
     #[inline]
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             ProxyError::IoError(ref e) => Some(e),
             _ => None,
@@ -146,16 +146,16 @@ pub fn proxy<A>(request: &Request, config: ProxyConfig<A>) -> Result<Response, P
 where
     A: ToSocketAddrs,
 {
-    let mut socket = try!(TcpStream::connect(config.addr));
-    try!(socket.set_read_timeout(Some(Duration::from_secs(60))));
-    try!(socket.set_write_timeout(Some(Duration::from_secs(60))));
+    let mut socket = r#try!(TcpStream::connect(config.addr));
+    r#try!(socket.set_read_timeout(Some(Duration::from_secs(60))));
+    r#try!(socket.set_write_timeout(Some(Duration::from_secs(60))));
 
     let mut data = match request.data() {
         Some(d) => d,
         None => return Err(ProxyError::BodyAlreadyExtracted),
     };
 
-    try!(socket
+    r#try!(socket
         .write_all(format!("{} {} HTTP/1.1\r\n", request.method(), request.raw_url()).as_bytes()));
     for (header, value) in request.headers() {
         let value = if header == "Host" {
@@ -171,10 +171,10 @@ where
             continue;
         }
 
-        try!(socket.write_all(format!("{}: {}\r\n", header, value).as_bytes()));
+        r#try!(socket.write_all(format!("{}: {}\r\n", header, value).as_bytes()));
     }
-    try!(socket.write_all(b"Connection: close\r\n\r\n"));
-    try!(io::copy(&mut data, &mut socket));
+    r#try!(socket.write_all(b"Connection: close\r\n\r\n"));
+    r#try!(io::copy(&mut data, &mut socket));
 
     let mut socket = io::BufReader::new(socket);
 
@@ -184,7 +184,7 @@ where
         let mut lines = socket.by_ref().lines();
 
         {
-            let line = try!(match lines.next() {
+            let line = r#try!(match lines.next() {
                 Some(l) => l,
                 None => return Err(ProxyError::HttpParseError),
             });
@@ -201,7 +201,7 @@ where
         }
 
         for header in lines {
-            let header = try!(header);
+            let header = r#try!(header);
             if header.is_empty() {
                 break;
             }

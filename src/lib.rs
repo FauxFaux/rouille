@@ -52,26 +52,8 @@
 
 #![deny(unsafe_code)]
 
-extern crate base64;
-#[cfg(feature = "brotli2")]
-extern crate brotli2;
-extern crate chrono;
-#[cfg(feature = "gzip")]
-extern crate deflate;
-extern crate filetime;
-extern crate multipart;
-extern crate rand;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate num_cpus;
-pub extern crate percent_encoding;
-extern crate serde_json;
-extern crate sha1;
-extern crate threadpool;
-extern crate time;
-extern crate tiny_http;
-pub extern crate url;
+pub use percent_encoding;
+pub use url;
 
 // https://github.com/servo/rust-url/blob/e121d8d0aafd50247de5f5310a227ecb1efe6ffe/percent_encoding/lib.rs#L126
 pub const DEFAULT_ENCODE_SET: &percent_encoding::AsciiSet = &percent_encoding::CONTROLS
@@ -85,10 +67,10 @@ pub const DEFAULT_ENCODE_SET: &percent_encoding::AsciiSet = &percent_encoding::C
     .add(b'{')
     .add(b'}');
 
-pub use assets::extension_to_mime;
-pub use assets::match_assets;
-pub use log::{log, log_custom};
-pub use response::{Response, ResponseBody};
+pub use crate::assets::extension_to_mime;
+pub use crate::assets::match_assets;
+pub use crate::log::{log, log_custom};
+pub use crate::response::{Response, ResponseBody};
 pub use tiny_http::ReadWrite;
 
 use std::error::Error;
@@ -307,11 +289,11 @@ where
     ///
     /// Returns an error if there was an error while creating the listening socket, for example if
     /// the port is already in use.
-    pub fn new<A>(addr: A, handler: F) -> Result<Server<F>, Box<Error + Send + Sync>>
+    pub fn new<A>(addr: A, handler: F) -> Result<Server<F>, Box<dyn Error + Send + Sync>>
     where
         A: ToSocketAddrs,
     {
-        let server = try!(tiny_http::Server::http(addr));
+        let server = r#try!(tiny_http::Server::http(addr));
         Ok(Server {
             server,
             executor: Executor::Threaded,
@@ -339,7 +321,7 @@ where
             certificate,
             private_key,
         };
-        let server = try!(tiny_http::Server::https(addr, ssl_config));
+        let server = r#try!(tiny_http::Server::https(addr, ssl_config));
         Ok(Server {
             server,
             executor: Executor::Threaded,
@@ -569,7 +551,7 @@ where
 /// The purpose of this trait is to be used with the `Connection: Upgrade` header, hence its name.
 pub trait Upgrade {
     /// Initializes the object with the given socket.
-    fn build(&mut self, socket: Box<ReadWrite + Send>);
+    fn build(&mut self, socket: Box<dyn ReadWrite + Send>);
 }
 
 /// Represents a request that your handler must answer to.
@@ -581,7 +563,7 @@ pub struct Request {
     url: String,
     headers: Vec<(String, String)>,
     https: bool,
-    data: Arc<Mutex<Option<Box<Read + Send>>>>,
+    data: Arc<Mutex<Option<Box<dyn Read + Send>>>>,
     remote_addr: SocketAddr,
 }
 
@@ -973,7 +955,7 @@ impl<'a> ExactSizeIterator for HeadersIter<'a> {}
 ///
 /// In order to obtain this object, call `request.data()`.
 pub struct RequestBody<'a> {
-    body: Box<Read + Send>,
+    body: Box<dyn Read + Send>,
     marker: PhantomData<&'a ()>,
 }
 
@@ -986,7 +968,7 @@ impl<'a> Read for RequestBody<'a> {
 
 #[cfg(test)]
 mod tests {
-    use Request;
+    use crate::Request;
 
     #[test]
     fn header() {

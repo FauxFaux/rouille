@@ -7,6 +7,8 @@
 // notice may not be copied, modified, or distributed except
 // according to those terms.
 
+use crate::Request;
+use crate::Upgrade;
 use percent_encoding;
 use serde;
 use serde_json;
@@ -16,8 +18,6 @@ use std::fs::File;
 use std::io;
 use std::io::Cursor;
 use std::io::Read;
-use Request;
-use Upgrade;
 
 /// Contains a prototype of a response.
 ///
@@ -59,7 +59,7 @@ pub struct Response {
     /// In all circumstances, the value of the `Connection` header is managed by the framework and
     /// cannot be customized. If this value is set, the response will automatically contain
     /// `Connection: Upgrade`.
-    pub upgrade: Option<Box<Upgrade + Send>>,
+    pub upgrade: Option<Box<dyn Upgrade + Send>>,
 }
 
 impl fmt::Debug for Response {
@@ -724,7 +724,7 @@ impl Response {
 /// let body = ResponseBody::from_string("hello world");
 /// ```
 pub struct ResponseBody {
-    data: Box<Read + Send>,
+    data: Box<dyn Read + Send>,
     data_length: Option<usize>,
 }
 
@@ -834,14 +834,14 @@ impl ResponseBody {
     /// Returns the size of the body and the body itself. If the size is `None`, then it is
     /// unknown.
     #[inline]
-    pub fn into_reader_and_size(self) -> (Box<Read + Send>, Option<usize>) {
+    pub fn into_reader_and_size(self) -> (Box<dyn Read + Send>, Option<usize>) {
         (self.data, self.data_length)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use Response;
+    use crate::Response;
 
     #[test]
     fn unique_header_adds() {

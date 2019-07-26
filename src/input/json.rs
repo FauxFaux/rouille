@@ -34,12 +34,12 @@
 //! ```
 //!
 
+use crate::Request;
 use serde;
 use serde_json;
 use std::error;
 use std::fmt;
 use std::io::Error as IoError;
-use Request;
 
 /// Error that can happen when parsing the JSON input.
 #[derive(Debug)]
@@ -83,7 +83,7 @@ impl error::Error for JsonError {
     }
 
     #[inline]
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             JsonError::IoError(ref e) => Some(e),
             JsonError::ParseError(ref e) => Some(e),

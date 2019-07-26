@@ -7,9 +7,9 @@
 // notice may not be copied, modified, or distributed except
 // according to those terms.
 
+use crate::Request;
+use crate::Response;
 use std::str;
-use Request;
-use Response;
 
 /// Applies content encoding to the response.
 ///
@@ -150,10 +150,10 @@ impl<'a> Iterator for AcceptedContentEncodingsIter<'a> {
 
 #[cfg(feature = "gzip")]
 fn gzip(e: &str, response: &mut Option<Response>) -> bool {
+    use crate::ResponseBody;
     use deflate::deflate_bytes_gzip;
     use std::io;
     use std::mem;
-    use ResponseBody;
 
     if !e.eq_ignore_ascii_case("gzip") {
         return false;
@@ -183,9 +183,9 @@ fn gzip(e: &str, response: &mut Option<Response>) -> bool {
 
 #[cfg(feature = "brotli")]
 fn brotli(e: &str, response: &mut Option<Response>) -> bool {
+    use crate::ResponseBody;
     use brotli2::read::BrotliEncoder;
     use std::mem;
-    use ResponseBody;
 
     if !e.eq_ignore_ascii_case("br") {
         return false;
@@ -209,8 +209,8 @@ fn brotli(e: &str, response: &mut Option<Response>) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use content_encoding;
-    use Request;
+    use crate::content_encoding;
+    use crate::Request;
 
     #[test]
     fn no_req_encodings() {

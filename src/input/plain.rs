@@ -7,11 +7,11 @@
 // notice may not be copied, modified, or distributed except
 // according to those terms.
 
+use crate::Request;
 use std::error;
 use std::fmt;
 use std::io::Error as IoError;
 use std::io::Read;
-use Request;
 
 /// Error that can happen when parsing the request body as plain text.
 #[derive(Debug)]
@@ -55,7 +55,7 @@ impl error::Error for PlainTextError {
     }
 
     #[inline]
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             PlainTextError::IoError(ref e) => Some(e),
             _ => None,
@@ -122,7 +122,7 @@ pub fn plain_text_body_with_limit(
     };
 
     let mut out = Vec::new();
-    try!(body
+    r#try!(body
         .take(limit.saturating_add(1) as u64)
         .read_to_end(&mut out));
     if out.len() > limit {
@@ -142,7 +142,7 @@ mod test {
     use super::plain_text_body;
     use super::plain_text_body_with_limit;
     use super::PlainTextError;
-    use Request;
+    use crate::Request;
 
     #[test]
     fn ok() {

@@ -7,19 +7,19 @@
 // notice may not be copied, modified, or distributed except
 // according to those terms.
 
+use crate::ReadWrite;
+use crate::Upgrade;
 use std::io;
 use std::io::Write;
 use std::mem;
 use std::sync::mpsc::Sender;
-use ReadWrite;
-use Upgrade;
 
-use websocket::low_level;
+use crate::websocket::low_level;
 
 /// A successful websocket. An open channel of communication. Implements `Read` and `Write`.
 pub struct Websocket {
     // The socket. `None` if closed.
-    socket: Option<Box<ReadWrite + Send>>,
+    socket: Option<Box<dyn ReadWrite + Send>>,
     // The websocket state machine.
     state_machine: low_level::StateMachine,
     // True if the fragmented message currently being processed is binary. False if string. Pings
@@ -79,7 +79,7 @@ impl Websocket {
             None => return Err(SendError::Closed),
         };
 
-        try!(send(data.as_bytes(), Write::by_ref(socket), 0x1));
+        r#try!(send(data.as_bytes(), Write::by_ref(socket), 0x1));
         Ok(())
     }
 
@@ -95,7 +95,7 @@ impl Websocket {
             None => return Err(SendError::Closed),
         };
 
-        try!(send(data, Write::by_ref(socket), 0x2));
+        r#try!(send(data, Write::by_ref(socket), 0x2));
         Ok(())
     }
 
@@ -110,7 +110,7 @@ impl Websocket {
 }
 
 impl Upgrade for Sender<Websocket> {
-    fn build(&mut self, socket: Box<ReadWrite + Send>) {
+    fn build(&mut self, socket: Box<dyn ReadWrite + Send>) {
         let websocket = Websocket {
             socket: Some(socket),
             state_machine: low_level::StateMachine::new(),
@@ -350,11 +350,11 @@ fn send<W: Write>(data: &[u8], mut dest: W, opcode: u8) -> io::Result<()> {
     // Write the opcode
     assert!(opcode <= 0xf);
     let first_byte = 0x80 | opcode;
-    try!(dest.write_all(&[first_byte]));
+    r#try!(dest.write_all(&[first_byte]));
 
     // Write the length
     if data.len() >= 65536 {
-        try!(dest.write_all(&[127u8]));
+        r#try!(dest.write_all(&[127u8]));
         let len = data.len() as u64;
         assert!(len < 0x8000_0000_0000_0000);
         let len1 = (len >> 56) as u8;
@@ -365,19 +365,19 @@ fn send<W: Write>(data: &[u8], mut dest: W, opcode: u8) -> io::Result<()> {
         let len6 = (len >> 16) as u8;
         let len7 = (len >> 8) as u8;
         let len8 = (len >> 0) as u8;
-        try!(dest.write_all(&[len1, len2, len3, len4, len5, len6, len7, len8]));
+        r#try!(dest.write_all(&[len1, len2, len3, len4, len5, len6, len7, len8]));
     } else if data.len() >= 126 {
-        try!(dest.write_all(&[126u8]));
+        r#try!(dest.write_all(&[126u8]));
         let len = data.len() as u16;
         let len1 = (len >> 8) as u8;
         let len2 = len as u8;
-        try!(dest.write_all(&[len1, len2]));
+        r#try!(dest.write_all(&[len1, len2]));
     } else {
-        try!(dest.write_all(&[data.len() as u8]));
+        r#try!(dest.write_all(&[data.len() as u8]));
     }
 
     // Write the data
-    try!(dest.write_all(data));
-    try!(dest.flush());
+    r#try!(dest.write_all(data));
+    r#try!(dest.flush());
     Ok(())
 }

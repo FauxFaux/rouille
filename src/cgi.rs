@@ -46,9 +46,9 @@ use std::io::Read;
 use std::process::Command;
 use std::process::Stdio;
 
-use Request;
-use Response;
-use ResponseBody;
+use crate::Request;
+use crate::Response;
+use crate::ResponseBody;
 
 /// Error that can happen when parsing the JSON input.
 #[derive(Debug)]
@@ -78,7 +78,7 @@ impl error::Error for CgiError {
     }
 
     #[inline]
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             CgiError::IoError(ref e) => Some(e),
             _ => None,
@@ -135,10 +135,10 @@ impl CgiRun for Command {
 
         // TODO: `HTTP_` env vars with the headers
 
-        let mut child = try!(self.spawn());
+        let mut child = r#try!(self.spawn());
 
         if let Some(mut body) = request.data() {
-            try!(io::copy(&mut body, child.stdin.as_mut().unwrap()));
+            r#try!(io::copy(&mut body, child.stdin.as_mut().unwrap()));
         } else {
             return Err(CgiError::BodyAlreadyExtracted);
         }
@@ -149,7 +149,7 @@ impl CgiRun for Command {
             let mut headers = Vec::new();
             let mut status_code = 200;
             for header in stdout.by_ref().lines() {
-                let header = try!(header);
+                let header = r#try!(header);
                 if header.is_empty() {
                     break;
                 }

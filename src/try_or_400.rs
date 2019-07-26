@@ -46,7 +46,7 @@ macro_rules! try_or_400 {
     };
 }
 
-#[derive(Serialize)]
+#[derive(serde_derive::Serialize)]
 pub struct ErrJson<'a> {
     description: &'a str,
     cause: Option<Box<ErrJson<'a>>>,

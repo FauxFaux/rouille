@@ -101,7 +101,7 @@
 //! `from_file` method. You should return `PostFieldError::WrongFieldType` if you're
 //! expecting a file and `from_field` was called, or vice-versa.
 
-use Request;
+use crate::Request;
 
 use std::borrow::Cow;
 use std::error;
@@ -161,7 +161,7 @@ impl error::Error for PostError {
     }
 
     #[inline]
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             PostError::IoError(ref e) => Some(e),
             PostError::Field { ref error, .. } => Some(error),
@@ -238,7 +238,7 @@ impl error::Error for PostFieldError {
     }
 
     #[inline]
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             PostFieldError::IoError(ref e) => Some(e),
             PostFieldError::WrongDataTypeInt(ref e) => Some(e),
@@ -426,7 +426,7 @@ where
     T: DecodePostField<C>,
 {
     fn from_field(config: C, content: &str) -> Result<Self, PostFieldError> {
-        Ok(vec![try!(DecodePostField::from_field(config, content))])
+        Ok(vec![r#try!(DecodePostField::from_field(config, content))])
     }
 
     fn from_file<R>(
@@ -438,7 +438,7 @@ where
     where
         R: BufRead,
     {
-        Ok(vec![try!(DecodePostField::from_file(
+        Ok(vec![r#try!(DecodePostField::from_file(
             config, file, filename, mime
         ))])
     }
@@ -490,7 +490,7 @@ impl DecodePostField<()> for BufferedFile {
         R: BufRead,
     {
         let mut out = Vec::new();
-        try!(file.read_to_end(&mut out));
+        r#try!(file.read_to_end(&mut out));
 
         Ok(BufferedFile {
             data: out,
@@ -528,7 +528,7 @@ macro_rules! post_input {
             match existing {
                 a @ &mut Some(_) => {
                     let extracted = mem::replace(a, None).unwrap();
-                    let merged = try!(extracted.merge_multiple(new));
+                    let merged = r#try!(extracted.merge_multiple(new));
                     *a = Some(merged);
                 },
                 a @ &mut None => *a = Some(new),
@@ -549,7 +549,7 @@ macro_rules! post_input {
                     // TODO: DDoSable server if body is too large?
                     let mut out = Vec::new();       // TODO: with_capacity()?
                     if let Some(mut b) = request.data() {
-                        try!(b.read_to_end(&mut out));
+                        r#try!(b.read_to_end(&mut out));
                     } else {
                         return Err(PostError::BodyAlreadyExtracted);
                     }
@@ -693,7 +693,7 @@ pub fn raw_urlencoded_post_input(request: &Request) -> Result<Vec<(String, Strin
         // TODO: DDoSable server if body is too large?
         let mut out = Vec::new(); // TODO: with_capacity()?
         if let Some(mut b) = request.data() {
-            try!(b.read_to_end(&mut out));
+            r#try!(b.read_to_end(&mut out));
         } else {
             return Err(PostError::BodyAlreadyExtracted);
         }
@@ -705,9 +705,9 @@ pub fn raw_urlencoded_post_input(request: &Request) -> Result<Vec<(String, Strin
 
 #[cfg(test)]
 mod tests {
-    use input::post::PostError;
-    use input::post::PostFieldError;
-    use Request;
+    use crate::input::post::PostError;
+    use crate::input::post::PostFieldError;
+    use crate::Request;
 
     #[test]
     fn basic_int() {
