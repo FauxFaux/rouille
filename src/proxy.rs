@@ -62,8 +62,8 @@ use std::borrow::Cow;
 use std::error;
 use std::fmt;
 use std::io;
-use std::io::Error as IoError;
 use std::io::BufRead;
+use std::io::Error as IoError;
 use std::io::Read;
 use std::io::Write;
 use std::net::TcpStream;
@@ -98,16 +98,12 @@ impl error::Error for ProxyError {
     #[inline]
     fn description(&self) -> &str {
         match *self {
-            ProxyError::BodyAlreadyExtracted => {
-                "the body of the request was already extracted"
-            },
+            ProxyError::BodyAlreadyExtracted => "the body of the request was already extracted",
             ProxyError::IoError(_) => {
                 "could not read the body from the request, or could not connect to the remote \
                  server, or the connection to the remote server closed unexpectedly"
-            },
-            ProxyError::HttpParseError => {
-                "the destination server didn't produce compliant HTTP"
-            },
+            }
+            ProxyError::HttpParseError => "the destination server didn't produce compliant HTTP",
         }
     }
 
@@ -115,7 +111,7 @@ impl error::Error for ProxyError {
     fn cause(&self) -> Option<&error::Error> {
         match *self {
             ProxyError::IoError(ref e) => Some(e),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -147,7 +143,8 @@ pub struct ProxyConfig<A> {
 /// > **Note**: SSL is not supported.
 // TODO: ^
 pub fn proxy<A>(request: &Request, config: ProxyConfig<A>) -> Result<Response, ProxyError>
-    where A: ToSocketAddrs
+where
+    A: ToSocketAddrs,
 {
     let mut socket = try!(TcpStream::connect(config.addr));
     try!(socket.set_read_timeout(Some(Duration::from_secs(60))));
@@ -158,7 +155,8 @@ pub fn proxy<A>(request: &Request, config: ProxyConfig<A>) -> Result<Response, P
         None => return Err(ProxyError::BodyAlreadyExtracted),
     };
 
-    try!(socket.write_all(format!("{} {} HTTP/1.1\r\n", request.method(), request.raw_url()).as_bytes()));
+    try!(socket
+        .write_all(format!("{} {} HTTP/1.1\r\n", request.method(), request.raw_url()).as_bytes()));
     for (header, value) in request.headers() {
         let value = if header == "Host" {
             if let Some(ref replace) = config.replace_host {
@@ -204,7 +202,9 @@ pub fn proxy<A>(request: &Request, config: ProxyConfig<A>) -> Result<Response, P
 
         for header in lines {
             let header = try!(header);
-            if header.is_empty() { break; }
+            if header.is_empty() {
+                break;
+            }
 
             let mut splits = header.splitn(2, ':');
             let header = match splits.next() {
@@ -240,9 +240,7 @@ impl error::Error for FullProxyError {
     #[inline]
     fn description(&self) -> &str {
         match *self {
-            FullProxyError::BodyAlreadyExtracted => {
-                "the body of the request was already extracted"
-            },
+            FullProxyError::BodyAlreadyExtracted => "the body of the request was already extracted",
         }
     }
 }
@@ -262,7 +260,8 @@ impl fmt::Display for FullProxyError {
 /// The only possible remaining error is if the body of the request was already extracted. Since
 /// this would be a logic error, it is acceptable to unwrap it.
 pub fn full_proxy<A>(request: &Request, config: ProxyConfig<A>) -> Result<Response, FullProxyError>
-    where A: ToSocketAddrs
+where
+    A: ToSocketAddrs,
 {
     match proxy(request, config) {
         Ok(r) => Ok(r),

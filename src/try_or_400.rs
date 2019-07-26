@@ -35,16 +35,15 @@ use std::error::Error;
 /// ```
 #[macro_export]
 macro_rules! try_or_400 {
-    ($result:expr) => (
+    ($result:expr) => {
         match $result {
             Ok(r) => r,
             Err(err) => {
                 let json = $crate::try_or_400::ErrJson::from_err(&err);
-                return $crate::Response::json(&json)
-                    .with_status_code(400)
-            },
+                return $crate::Response::json(&json).with_status_code(400);
+            }
         }
-    );
+    };
 }
 
 #[derive(Serialize)]
@@ -56,6 +55,9 @@ pub struct ErrJson<'a> {
 impl<'a> ErrJson<'a> {
     pub fn from_err<E: ?Sized + Error>(err: &'a E) -> ErrJson<'a> {
         let cause = err.cause().map(ErrJson::from_err).map(Box::new);
-        ErrJson { description: err.description(), cause }
+        ErrJson {
+            description: err.description(),
+            cause,
+        }
     }
 }
